@@ -19,7 +19,7 @@ import (
 func banner() {
 	fmt.Println()
 	fmt.Println()
-	fmt.Printf(strings.TrimSuffix(figure.NewFigure("Auto Discovery", "slant", true).String(), "\n") + "   v2.0.0")
+	fmt.Printf(strings.TrimSuffix(figure.NewFigure("AutoPolicy", "slant", true).String(), "\n") + "   v1.0.0")
 	fmt.Println()
 	fmt.Println()
 
@@ -149,16 +149,16 @@ func main() {
 	}
 	app := &cli.App{
 		Name:      "Auto Discovery v2.0",
-		Usage:     "A simple CLI tool to automatically generate and apply policies or push to GitHub",
+		Usage:     "A simple CLI tool automates the creation of YAML-based runtime network & system security policies on top of Auto-Discovery feature by AccuKnox and Policy Templates",
 		Version:   resources.CLI_VERSION,
-		UsageText: "autodiscovery2.0 [Flags]\nEg. autodiscovery2.0 --git_base_branch=deploy-branch --auto-apply=false --git_branch_name=temp-branch --git_token=gh_token123 --git_repo_url= https://github.com/testuser/demo.git --git_username=testuser",
+		UsageText: "autopolicy [Flags]\nEg.  --git_base_branch=deploy-branch --auto-apply=false --git_branch_name=temp-branch --git_token=gh_token123 --git_repo_url= https://github.com/testuser/demo.git --git_username=testuser",
 		Flags:     myFlags,
 		Action: func(c *cli.Context) error {
 
 			if c.String("git_username") == "" || c.String("git_token") == "" || c.String("git_repo_url") == "" || c.String("git_branch_name") == "" || c.String("git_base_branch") == "" {
 				banner()
 				fmt.Printf("[%s][%s] Parameters missing.\n", color.BlueString(time.Now().Format("01-02-2006 15:04:05")), color.CyanString("WARN"))
-				fmt.Printf("[%s][%s] Please use autodisovery2.0 --help for help\n", color.BlueString(time.Now().Format("01-02-2006 15:04:05")), color.CyanString("WARN"))
+				fmt.Printf("[%s][%s] Please use autopolicy --help for help\n", color.BlueString(time.Now().Format("01-02-2006 15:04:05")), color.CyanString("WARN"))
 
 			} else {
 				banner()
