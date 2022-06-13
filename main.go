@@ -148,10 +148,10 @@ func main() {
 		},
 	}
 	app := &cli.App{
-		Name:      "Auto Discovery v2.0",
+		Name:      "Auto Policy",
 		Usage:     "A simple CLI tool automates the creation of YAML-based runtime network & system security policies on top of Auto-Discovery feature by AccuKnox and Policy Templates",
 		Version:   resources.CLI_VERSION,
-		UsageText: "autopolicy [Flags]\nEg.  --git_base_branch=deploy-branch --auto-apply=false --git_branch_name=temp-branch --git_token=gh_token123 --git_repo_url= https://github.com/testuser/demo.git --git_username=testuser",
+		UsageText: "autopolicy [Flags]\nEg. autopolicy --git_base_branch=deploy-branch --auto-apply=false --git_branch_name=temp-branch --git_token=gh_token123 --git_repo_url= https://github.com/testuser/demo.git --git_username=testuser",
 		Flags:     myFlags,
 		Action: func(c *cli.Context) error {
 
