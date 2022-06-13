@@ -22,7 +22,7 @@ const KUBEARMORHOST_POLICY = "KubeArmorHostPolicy"
 const KUBEARMOR_POLICY = "KubeArmorPolicy"
 const GCP = "GCP"
 
-var CLI_VERSION string = "2.0.0"
+var CLI_VERSION string = "1.0.0"
 
 var CURRENT_DIR, GIT_DIR, USER_HOME, AD_DIR, GIT_REPO_PATH, GIT_POLICY_NAME string
 var POLICY_COUNT int = 0

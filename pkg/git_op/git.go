@@ -96,12 +96,12 @@ func createBranch(r *git.Repository, username string, token string, branch_name 
 	w.Add(".")
 
 	author := &object.Signature{
-		Name:  "autodiscovery2.0",
+		Name:  "AutoPolicy",
 		Email: "vishnu@accuknox.com",
 		When:  time.Now(),
 	}
 
-	w.Commit("Commit from autodiscovery2.0 CLI", &git.CommitOptions{Author: author})
+	w.Commit("Commit from AccuKnox AutoPolicy CLI", &git.CommitOptions{Author: author})
 }
 
 func pushToGithub(r *git.Repository, username, password string) {
@@ -133,10 +133,10 @@ func newClient(token string) *github.Client {
 func createPRToGit(token string, branchName string, username string, repoName string, client *github.Client, git_base_branch string) {
 
 	newPR := &github.NewPullRequest{
-		Title:               github.String("PR from autodiscovery2.0 CLI"),
+		Title:               github.String("PR from AccuKnox AutoPolicy CLI"),
 		Head:                github.String(branchName),
 		Base:                github.String(git_base_branch),
-		Body:                github.String("This is an automated PR created by autodiscovery2.0 CLI"),
+		Body:                github.String("This is an automated PR created by AccuKnox AutoPolicy CLI"),
 		MaintainerCanModify: github.Bool(true),
 	}
 
@@ -166,7 +166,7 @@ func mergePullRequest(owner, repo, number, token string, client *github.Client) 
 
 	fmt.Printf("[%s][%s] Attempting to merge PR #%s on %s/%s\n", color.BlueString(time.Now().Format("01-02-2006 15:04:05")), color.BlueString("INFO"), color.CyanString(number), color.CyanString(owner), color.CyanString(repo))
 
-	commitMsg := "Commit from AccuKnox autodiscover2.0 CLI"
+	commitMsg := "Commit from AccuKnox AutoPolicy CLI"
 	_, _, mergeErr := client.PullRequests.Merge(
 		context.Background(),
 		owner,
