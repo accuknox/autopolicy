@@ -33,6 +33,7 @@ The CLI takes in some inputs from the user and starts its action by connecting t
 </h3>
 
 </br>
+
 ### Final Output in GitHub
 
  <h3 align="center">
