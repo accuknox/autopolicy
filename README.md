@@ -1,8 +1,8 @@
 
-Policy Discovery 2.0
+AutoPolicy
 ---
 
-Policy discovery 2.0 is used to create YAML-based runtime security policies which can be enforceable by [AccuKnox](https://www.accuknox.com/) opensource tools. Policy discovery 2.0 offers auto-discovered policies based on the workloads as well as policies that are tailored for specific use cases.
+AutoPolicy is used to create YAML-based runtime security policies which can be enforceable by [AccuKnox](https://www.accuknox.com/) opensource tools. AutoPolicy offers auto-discovered policies based on the workloads as well as policies that are tailored for specific use cases.
 We have a [dedicated repository](https://github.com/kubearmor/policy-templates) that houses various types of policies specific to CVEs, Workloads, Malware, and many more. 
 
 
@@ -26,37 +26,43 @@ The CLI takes in some inputs from the user and starts its action by connecting t
   <img src="./images/discovery-1.png" alt="output-1"></a>
 </h3>
 
-
+</br>
 
 <h3 align="center">
   <img src="./images/discovery-2.png" alt="output-2"></a>
 </h3>
 
-
+</br>
 ### Final Output in GitHub
 
  <h3 align="center">
    <img src="./images/discovery-3.png" alt="output-3"></a>
  </h3>
 
-## Install autodiscovery2.0
+</br>
 
-autodiscovery2.0 requires  **go1.17 or higher**  to install successfully. Run the following commands to build the latest version-
+ <h3 align="center">
+   <img src="./images/discovery-4.png" alt="output-4"></a>
+ </h3>
+
+## Install AutoPolicy
+
+AutoPolicy requires  **go1.17 or higher**  to install successfully. Run the following commands to build the latest version-
 ```sh
-git clone git@github.com:vishnusomank/policy-cli-2.0.git
-cd policy-cli-2.0
-go build -o autodiscovery2.0
+git clone git@github.com:accuknox/autopolicy.git
+cd autopolicy
+go build -o autopolicy
 ```
 To run the program use-
 ```sh
-./autodiscovery2.0
+./autopolicy
 ```
 
 
 ### Usage
 
 ```sh
-autodiscovery2.0 -h
+autopolicy -h
 ```
 
 This will display help for the tool. Here are all the switches it supports.
@@ -67,8 +73,8 @@ NAME:
    Auto Discovery v2.0 - A simple CLI tool to automatically generate and apply policies or push to GitHub
 
 USAGE:
-   autodiscovery2.0 [Flags]
-   Eg. autodiscovery2.0 --git_base_branch=deploy-branch --auto-apply=false --git_branch_name=temp-branch --git_token=gh_token123 --git_repo_url= https://github.com/testuser/demo.git --git_username=testuser
+   autopolicy [Flags]
+   Eg. autopolicy --git_base_branch=deploy-branch --auto-apply=false --git_branch_name=temp-branch --git_token=gh_token123 --git_repo_url= https://github.com/testuser/demo.git --git_username=testuser
 
 VERSION:
    2.0.0
@@ -87,10 +93,10 @@ GLOBAL OPTIONS:
    --version, -v                                print the version (default: false)
 ```
 
-### Running autodiscovery2.0
+### Running AutoPolicy
 
 ```sh
-autodiscovery2.0 --auto-apply=false --git_branch_name=demo-branch --git_token=ghp_gittokenqwerty  --git_repo_url=https://github.com/demo-user/demo-repo.git --git_username=demo-user --git_base_branch=demo-base-branch
+autopolicy --auto-apply=false --git_branch_name=demo-branch --git_token=ghp_gittokenqwerty  --git_repo_url=https://github.com/demo-user/demo-repo.git --git_username=demo-user --git_base_branch=demo-base-branch
 ```
 
 ### Resources
