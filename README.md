@@ -71,14 +71,14 @@ This will display help for the tool. Here are all the switches it supports.
 
 ```console
 NAME:
-   Auto Discovery v2.0 - A simple CLI tool to automatically generate and apply policies or push to GitHub
+   Auto Policy - A simple CLI tool automates the creation of YAML-based runtime network & system security policies on top of Auto-Discovery feature by AccuKnox and Policy Templates
 
 USAGE:
    autopolicy [Flags]
    Eg. autopolicy --git_base_branch=deploy-branch --auto-apply=false --git_branch_name=temp-branch --git_token=gh_token123 --git_repo_url= https://github.com/testuser/demo.git --git_username=testuser
 
 VERSION:
-   2.0.0
+   1.0.0
 
 COMMANDS:
    help, h  Shows a list of commands or help for one command
