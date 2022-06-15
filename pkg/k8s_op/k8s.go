@@ -333,8 +333,8 @@ func policy_read_templates(policy_name string, namespace string, labels string, 
 		if repo_path != "" && temp_path != "" {
 			repo_path = repo_path + temp_path + "/"
 		} else {
-			if strings.Contains(string(content), "exposures") {
-				temp_path = "/exposures/"
+			if strings.Contains(string(content), "exposure") {
+				temp_path = "/exposure/"
 			} else if strings.Contains(string(content), "malware") {
 				temp_path = "/malware/"
 			} else {
