@@ -250,6 +250,8 @@ func policy_read_templates(policy_name string, namespace string, labels string, 
 	if strings.Contains(string(content), search) {
 		var repo_path, temp_path string
 
+		temp_path = ""
+
 		for i := 0; i < len(resources.USEDWORKLOAD); i++ {
 			if strings.Contains(search, resources.USEDWORKLOAD[i]) {
 				repo_path = repo_path_git + "/" + strings.ToLower(resources.USEDWORKLOAD[i])
@@ -276,7 +278,11 @@ func policy_read_templates(policy_name string, namespace string, labels string, 
 		}
 		scanner := bufio.NewScanner(file)
 		var text []string
+		if temp_path == "" {
+
+		}
 		for scanner.Scan() {
+
 			if strings.Contains(string(scanner.Text()), "name:") {
 				policy_val := strings.FieldsFunc(string(scanner.Text()), Split)
 				policy_val[1] = strings.Replace(policy_val[1], " ", "", -1)
@@ -327,10 +333,17 @@ func policy_read_templates(policy_name string, namespace string, labels string, 
 		if repo_path != "" && temp_path != "" {
 			repo_path = repo_path + temp_path + "/"
 		} else {
-			if _, err := os.Stat(repo_path + "/hardening"); os.IsNotExist(err) {
-				os.Mkdir(repo_path+"/hardening", 0755)
+			if strings.Contains(string(content), "exposures") {
+				temp_path = "/exposures/"
+			} else if strings.Contains(string(content), "malware") {
+				temp_path = "/malware/"
+			} else {
+				temp_path = "/hardening/"
 			}
-			repo_path = repo_path + "/hardening/"
+			if _, err := os.Stat(repo_path + temp_path); os.IsNotExist(err) {
+				os.Mkdir(repo_path+temp_path, 0755)
+			}
+			repo_path = repo_path + temp_path
 		}
 
 		policy_updated, err := os.OpenFile(repo_path+git_policy_name+".yaml", os.O_CREATE|os.O_WRONLY, 0644)
