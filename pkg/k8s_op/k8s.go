@@ -30,7 +30,6 @@ import (
 	clientcmd "k8s.io/client-go/tools/clientcmd"
 )
 
-var autoapply bool
 var label_count int
 var repo_path_git, git_policy_name string
 
@@ -110,81 +109,88 @@ func policy_read_ad(policy_name string, namespace string, labels string, search 
 	if err != nil {
 		log.Error(err)
 	}
+	if strings.Contains(string(content), "namespace: "+namespace) {
 
-	if strings.Contains(string(content), search) {
+		if strings.Contains(string(content), search) {
 
-		log.Info("Found AD policy " + policy_name + " with search '" + search + "'")
+			log.Info("Found AD policy " + policy_name + " with search '" + search + "'")
 
-		var repo_path string
+			var repo_path string
 
-		for i := 0; i < len(resources.USEDWORKLOAD); i++ {
-			if strings.Contains(search, resources.USEDWORKLOAD[i]) {
-				repo_path = repo_path_git + "/" + strings.ToLower(resources.USEDWORKLOAD[i]) + "/"
-				break
-			}
-		}
-
-		if _, err := os.Stat(repo_path); os.IsNotExist(err) {
-			os.Mkdir(repo_path, 0755)
-		}
-		repo_path = repo_path + "/ad-policy"
-		if _, err := os.Stat(repo_path); os.IsNotExist(err) {
-			os.Mkdir(repo_path, 0755)
-		}
-
-		file, err := os.Open(policy_name)
-		if err != nil {
-			log.Fatal(err)
-		}
-		scanner := bufio.NewScanner(file)
-		var text []string
-		for scanner.Scan() {
-			if strings.Contains(string(scanner.Text()), resources.CILIUM_CLUSTER_POLICY) {
-				namePrefix = "ccnp-"
-			} else if strings.Contains(string(scanner.Text()), resources.CILIUM_POLICY) {
-				namePrefix = "cnp-"
-			} else if strings.Contains(string(scanner.Text()), resources.KUBEARMOR_POLICY) {
-				namePrefix = "ksp-"
-			} else if strings.Contains(string(scanner.Text()), resources.KUBEARMORHOST_POLICY) {
-				namePrefix = "hsp-"
-			}
-			if strings.Contains(string(scanner.Text()), "name:") && nameCount == 0 {
-				policy_val := strings.FieldsFunc(string(scanner.Text()), Split)
-				policy_val[1] = strings.Replace(policy_val[1], " ", "", -1)
-				git_policy_name = strings.Replace(namePrefix+policy_val[1], "\"", "", -1)
-				git_policy_name = strings.Replace(git_policy_name, "block", "audit", -1)
-				git_policy_name = strings.Replace(git_policy_name, "restrict", "audit", -1)
-				git_policy_name = strings.Replace(git_policy_name, "allow", "audit", -1)
-				nameCount = 1
-				text = append(text, "  name: "+git_policy_name)
-			} else {
-				if strings.Contains(string(scanner.Text()), "action:") {
-					actionVal := strings.FieldsFunc(string(scanner.Text()), Split)
-					text = append(text, actionVal[0]+" : Audit")
-					scanner.Scan()
-					if strings.Contains(string(scanner.Text()), "Audit") || strings.Contains(string(scanner.Text()), "Block") || strings.Contains(string(scanner.Text()), "Allow") {
-						scanner.Scan()
-					}
-
+			for i := 0; i < len(resources.USEDWORKLOAD); i++ {
+				if strings.Contains(search, resources.USEDWORKLOAD[i]) {
+					repo_path = repo_path_git + "/" + strings.ToLower(resources.USEDWORKLOAD[i]) + "/"
+					break
 				}
-				text = append(text, scanner.Text())
 			}
-		}
 
-		file.Close()
-		policy_updated, err := os.OpenFile(repo_path+"/"+git_policy_name+".yaml", os.O_CREATE|os.O_WRONLY, 0644)
-		if err != nil {
-			log.Error(err)
-			return
-		}
+			if _, err := os.Stat(repo_path); os.IsNotExist(err) {
+				os.Mkdir(repo_path, 0755)
+			}
+			repo_path = repo_path + "/ad-policy"
+			if _, err := os.Stat(repo_path); os.IsNotExist(err) {
+				os.Mkdir(repo_path, 0755)
+			}
 
-		for _, each_ln := range text {
-			_, err = fmt.Fprintln(policy_updated, each_ln)
+			file, err := os.Open(policy_name)
+			if err != nil {
+				log.Fatal(err)
+			}
+			scanner := bufio.NewScanner(file)
+			var text []string
+			for scanner.Scan() {
+				if strings.Contains(string(scanner.Text()), resources.CILIUM_CLUSTER_POLICY) {
+					namePrefix = "ccnp-"
+				} else if strings.Contains(string(scanner.Text()), resources.CILIUM_POLICY) {
+					namePrefix = "cnp-"
+				} else if strings.Contains(string(scanner.Text()), resources.KUBEARMOR_POLICY) {
+					namePrefix = "ksp-"
+				} else if strings.Contains(string(scanner.Text()), resources.KUBEARMORHOST_POLICY) {
+					namePrefix = "hsp-"
+				}
+				if strings.Contains(string(scanner.Text()), "name:") && nameCount == 0 {
+					policy_val := strings.FieldsFunc(string(scanner.Text()), Split)
+					policy_val[1] = strings.Replace(policy_val[1], " ", "", -1)
+					git_policy_name = strings.Replace(namePrefix+policy_val[1], "\"", "", -1)
+					if strings.ToLower(resources.ACTION_VAL) != "no-change" {
+						git_policy_name = strings.Replace(git_policy_name, "audit", strings.ToLower(resources.ACTION_VAL), -1)
+						git_policy_name = strings.Replace(git_policy_name, "block", strings.ToLower(resources.ACTION_VAL), -1)
+						git_policy_name = strings.Replace(git_policy_name, "restrict", strings.ToLower(resources.ACTION_VAL), -1)
+						git_policy_name = strings.Replace(git_policy_name, "allow", strings.ToLower(resources.ACTION_VAL), -1)
+					}
+					nameCount = 1
+					text = append(text, "  name: "+git_policy_name)
+				} else {
+					if resources.ACTION_VAL != "" && strings.ToLower(resources.ACTION_VAL) != "no-change" {
+						if strings.Contains(string(scanner.Text()), "action:") {
+							actionVal := strings.FieldsFunc(string(scanner.Text()), Split)
+							text = append(text, actionVal[0]+": "+resources.ACTION_VAL)
+							scanner.Scan()
+							if strings.Contains(string(scanner.Text()), "Audit") || strings.Contains(string(scanner.Text()), "Block") || strings.Contains(string(scanner.Text()), "Allow") {
+								scanner.Scan()
+							}
+
+						}
+					}
+					text = append(text, scanner.Text())
+				}
+			}
+
+			file.Close()
+			policy_updated, err := os.OpenFile(repo_path+"/"+git_policy_name+".yaml", os.O_CREATE|os.O_WRONLY, 0644)
 			if err != nil {
 				log.Error(err)
+				return
 			}
-		}
 
+			for _, each_ln := range text {
+				_, err = fmt.Fprintln(policy_updated, each_ln)
+				if err != nil {
+					log.Error(err)
+				}
+			}
+
+		}
 	}
 
 }
@@ -287,9 +293,12 @@ func policy_read_templates(policy_name string, namespace string, labels string, 
 				policy_val := strings.FieldsFunc(string(scanner.Text()), Split)
 				policy_val[1] = strings.Replace(policy_val[1], " ", "", -1)
 				git_policy_name = strings.Replace(policy_val[1], "\"", "", -1)
-				git_policy_name = strings.Replace(git_policy_name, "block", "audit", -1)
-				git_policy_name = strings.Replace(git_policy_name, "restrict", "audit", -1)
-				git_policy_name = strings.Replace(git_policy_name, "allow", "audit", -1)
+				if strings.ToLower(resources.ACTION_VAL) != "no-change" {
+					git_policy_name = strings.Replace(git_policy_name, "audit", strings.ToLower(resources.ACTION_VAL), -1)
+					git_policy_name = strings.Replace(git_policy_name, "block", strings.ToLower(resources.ACTION_VAL), -1)
+					git_policy_name = strings.Replace(git_policy_name, "restrict", strings.ToLower(resources.ACTION_VAL), -1)
+					git_policy_name = strings.Replace(git_policy_name, "allow", strings.ToLower(resources.ACTION_VAL), -1)
+				}
 
 				text = append(text, "  name: "+git_policy_name)
 				for scanner.Scan() {
@@ -316,14 +325,16 @@ func policy_read_templates(policy_name string, namespace string, labels string, 
 					}
 				}
 			}
-			if strings.Contains(string(scanner.Text()), "action:") {
-				actionVal := strings.FieldsFunc(string(scanner.Text()), Split)
-				text = append(text, actionVal[0]+" : Audit")
-				scanner.Scan()
-				if strings.Contains(string(scanner.Text()), "Audit") || strings.Contains(string(scanner.Text()), "Block") || strings.Contains(string(scanner.Text()), "Allow") {
+			if resources.ACTION_VAL != "" && strings.ToLower(resources.ACTION_VAL) != "no-change" {
+				if strings.Contains(string(scanner.Text()), "action:") {
+					actionVal := strings.FieldsFunc(string(scanner.Text()), Split)
+					text = append(text, actionVal[0]+": "+resources.ACTION_VAL)
 					scanner.Scan()
-				}
+					if strings.Contains(string(scanner.Text()), "Audit") || strings.Contains(string(scanner.Text()), "Block") || strings.Contains(string(scanner.Text()), "Allow") {
+						scanner.Scan()
+					}
 
+				}
 			}
 			text = append(text, scanner.Text())
 
@@ -376,8 +387,8 @@ func shortID(length int) string {
 
 func k8s_apply(path string) {
 
-	if autoapply == true {
-		log.Info("auto-apply = " + strconv.FormatBool(autoapply))
+	if resources.AUTOAPPLY == true {
+		log.Info("auto-apply = " + strconv.FormatBool(resources.AUTOAPPLY))
 
 		log.Info("Trying to establish connection to k8s")
 		home, exists := os.LookupEnv("HOME")
@@ -494,14 +505,21 @@ func k8s_apply(path string) {
 		}
 
 	} else {
-		log.Warn("auto-apply = " + strconv.FormatBool(autoapply))
+		log.Warn("auto-apply = " + strconv.FormatBool(resources.AUTOAPPLY))
 	}
 
 }
 
-func K8s_Labels(flag bool, git_repo_path string, repo_path string, ad_dir string) {
+func removeResidues(repo_path string) {
 
-	autoapply = flag
+	err := os.RemoveAll(repo_path)
+	if err != nil {
+		log.Fatal(err)
+	}
+}
+
+func K8s_Labels(git_repo_path string, repo_path string, ad_dir string) {
+
 	repo_path_git = repo_path
 
 	clientset := connectToK8s()
@@ -513,14 +531,31 @@ func K8s_Labels(flag bool, git_repo_path string, repo_path string, ad_dir string
 	var temp []string
 	var count int = 0
 	for _, pod := range pods.Items {
+		if resources.INCLUDE_NS != "" && pod.GetNamespace() != resources.INCLUDE_NS {
+			continue
+		} else if resources.EXCLUDE_NS != "" && pod.GetNamespace() == resources.EXCLUDE_NS {
+			continue
+		}
 		if createKeyValuePairs(pod.GetLabels(), true, pod.GetNamespace()) != "" {
 			temp = append(temp, createKeyValuePairs(pod.GetLabels(), true, pod.GetNamespace()))
 			count++
 		}
 	}
-	if count == 0 {
-		fmt.Printf("[%s][%s] No Predefined workloads found in the cluster. Gracefully exiting program.\n", color.BlueString(time.Now().Format("01-02-2006 15:04:05")), color.RedString("ERR"))
+	if count == 0 && resources.INCLUDE_NS != "" {
+		fmt.Printf("[%s][%s] No Predefined workloads found in [%s] namespace. Gracefully exiting program.\n", color.BlueString(time.Now().Format("01-02-2006 15:04:05")), color.RedString("ERR"), color.CyanString(resources.INCLUDE_NS))
+		removeResidues(resources.GIT_DIR)
+		removeResidues(resources.AD_DIR)
+
+		removeResidues("logs.log")
 		os.Exit(1)
+	} else if count == 0 && resources.EXCLUDE_NS != "" {
+		fmt.Printf("[%s][%s] Excluded [%s] namespace. No Predefined workloads found the remaining namespaces. Gracefully exiting program.\n", color.BlueString(time.Now().Format("01-02-2006 15:04:05")), color.RedString("ERR"), color.CyanString(resources.EXCLUDE_NS))
+		removeResidues(resources.GIT_DIR)
+		removeResidues(resources.AD_DIR)
+
+		removeResidues("logs.log")
+		os.Exit(1)
+
 	} else {
 		fmt.Printf("[%s][%s] Found %d Label(s)\n", color.BlueString(time.Now().Format("01-02-2006 15:04:05")), color.BlueString("Label Count"), count)
 	}
@@ -536,6 +571,11 @@ func K8s_Labels(flag bool, git_repo_path string, repo_path string, ad_dir string
 		log.Info("disp=false Label values: ", labels)
 		searchVal := strings.FieldsFunc(labels, Split)
 		log.Info("disp=false searchval values: ", searchVal)
+		if resources.INCLUDE_NS != "" && pod.GetNamespace() != resources.INCLUDE_NS {
+			continue
+		} else if resources.EXCLUDE_NS != "" && pod.GetNamespace() == resources.EXCLUDE_NS {
+			continue
+		}
 		if labels != "" {
 			//	fmt.Printf("[%s][%s] Pod: %s || Labels: %s || Namespace: %s\n", color.BlueString(time.Now().Format("01-02-2006 15:04:05")), color.BlueString("Label Details"), pod.GetName(), labels, pod.GetNamespace())
 			/*
@@ -560,10 +600,10 @@ func K8s_Labels(flag bool, git_repo_path string, repo_path string, ad_dir string
 
 		}
 	}
-	if flag == false {
+	if resources.AUTOAPPLY == false {
 		log.Info("Received flag value false")
 
-		fmt.Printf("[%s][%s] Halting execution because auto-apply is not enabled\n", color.BlueString(time.Now().Format("01-02-2006 15:04:05")), color.CyanString("WRN"))
+		fmt.Printf("[%s][%s] Flag auto-apply is not enabled\n", color.BlueString(time.Now().Format("01-02-2006 15:04:05")), color.YellowString("INFO"))
 	} else {
 		fmt.Printf("[%s][%s] Started applying policies\n", color.BlueString(time.Now().Format("01-02-2006 15:04:05")), color.BlueString("INIT"))
 

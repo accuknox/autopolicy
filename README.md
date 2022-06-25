@@ -75,7 +75,9 @@ NAME:
 
 USAGE:
    autopolicy [Flags]
-   Eg. autopolicy --git_base_branch=deploy-branch --auto-apply=false --git_branch_name=temp-branch --git_token=gh_token123 --git_repo_url= https://github.com/testuser/demo.git --git_username=testuser
+
+   1. Generate policies locally    -->  autopolicy --generate-locally --action=Audit --exclude-ns=kube-system
+   2. Generate and push to GitHub  -->  autopolicy --git_base_branch=deploy-branch --git-branch-name=temp-branch --git-token=gh-token123 --git-repo-url= https://github.com/testuser/demo.git --git-username=testuser
 
 VERSION:
    1.0.0
@@ -84,20 +86,29 @@ COMMANDS:
    help, h  Shows a list of commands or help for one command
 
 GLOBAL OPTIONS:
-   --auto-apply, --auto                         If true, modifed YAML will be applied to the cluster (default: false)
-   --git_base_branch value, --basebranch value  GitHub base branch name for PR creation
-   --git_branch_name value, --branch value      GitHub branch name for pushing updates
-   --git_repo_url value, --git_url value        GitHub URL to push the updates
-   --git_token value, --token value             GitHub token for authentication
-   --git_username value, --git_user value       GitHub username
-   --help, -h                                   show help (default: false)
-   --version, -v                                print the version (default: false)
+   --action-value value, --action value           Action value for policy. Can be Audit, Block, Allow or no-change (default: Audit)
+   --auto-apply, --auto                           If true, modifed YAML will be applied to the cluster (default: false)
+   --exclude-namespace value, --exclude-ns value  Option to exclude generation of policies on certain namespaces
+   --generate-locally, --gen-loc                  If true, Policy YAML will only be generate locally under $(pwd)/accuknox-client-repo/ (default: false)
+   --git-base-branch value, --basebranch value    GitHub base branch name for PR creation
+   --git-branch-name value, --branch value        GitHub branch name for pushing updates
+   --git-repo-url value, --git-url value          GitHub URL to push the updates
+   --git-token value, --token value               GitHub token for authentication
+   --git-username value, --git-user value         GitHub username
+   --help, -h                                     show help (default: false)
+   --only-on-namespace value, --only-on-ns value  Option to generation of policies only on certain namespaces
+   --version, -v                                  print the version (default: false)
 ```
 
 ### Running AutoPolicy
 
+1. Generate policies locally
 ```sh
-autopolicy --auto-apply=false --git_branch_name=demo-branch --git_token=ghp_gittokenqwerty  --git_repo_url=https://github.com/demo-user/demo-repo.git --git_username=demo-user --git_base_branch=demo-base-branch
+autopolicy --generate-locally --action=Audit --exclude-ns=kube-system
+```
+2. Generate and push to GitHub 
+```sh
+autopolicy --git_base_branch=deploy-branch --git-branch-name=temp-branch --git-token=gh-token123 --git-repo-url= https://github.com/testuser/demo.git --git-username=testuser --only-on-ns default
 ```
 
 ### Resources

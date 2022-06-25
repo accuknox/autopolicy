@@ -64,8 +64,8 @@ func main() {
 
 	myFlags := []cli.Flag{
 		&cli.StringFlag{
-			Name:        "git_username",
-			Aliases:     []string{"git_user"},
+			Name:        "git-username",
+			Aliases:     []string{"git-user"},
 			Usage:       "GitHub username",
 			EnvVars:     []string{},
 			FilePath:    "",
@@ -78,8 +78,8 @@ func main() {
 			HasBeenSet:  false,
 		},
 		&cli.StringFlag{
-			Name:        "git_repo_url",
-			Aliases:     []string{"git_url"},
+			Name:        "git-repo-url",
+			Aliases:     []string{"git-url"},
 			Usage:       "GitHub URL to push the updates",
 			EnvVars:     []string{},
 			FilePath:    "",
@@ -92,7 +92,7 @@ func main() {
 			HasBeenSet:  false,
 		},
 		&cli.StringFlag{
-			Name:        "git_token",
+			Name:        "git-token",
 			Aliases:     []string{"token"},
 			Usage:       "GitHub token for authentication",
 			EnvVars:     []string{},
@@ -106,7 +106,7 @@ func main() {
 			HasBeenSet:  false,
 		},
 		&cli.StringFlag{
-			Name:        "git_branch_name",
+			Name:        "git-branch-name",
 			Aliases:     []string{"branch"},
 			Usage:       "GitHub branch name for pushing updates",
 			EnvVars:     []string{},
@@ -120,9 +120,51 @@ func main() {
 			HasBeenSet:  false,
 		},
 		&cli.StringFlag{
-			Name:        "git_base_branch",
+			Name:        "git-base-branch",
 			Aliases:     []string{"basebranch"},
 			Usage:       "GitHub base branch name for PR creation",
+			EnvVars:     []string{},
+			FilePath:    "",
+			Required:    false,
+			Hidden:      false,
+			TakesFile:   false,
+			Value:       "",
+			DefaultText: "",
+			Destination: new(string),
+			HasBeenSet:  false,
+		},
+		&cli.StringFlag{
+			Name:        "action-value",
+			Aliases:     []string{"action"},
+			Usage:       "Action value for policy. Can be Audit, Block, Allow or no-change",
+			EnvVars:     []string{},
+			FilePath:    "",
+			Required:    false,
+			Hidden:      false,
+			TakesFile:   false,
+			Value:       "",
+			DefaultText: "Audit",
+			Destination: new(string),
+			HasBeenSet:  false,
+		},
+		&cli.StringFlag{
+			Name:        "exclude-namespace",
+			Aliases:     []string{"exclude-ns"},
+			Usage:       "Option to exclude generation of policies on certain namespaces",
+			EnvVars:     []string{},
+			FilePath:    "",
+			Required:    false,
+			Hidden:      false,
+			TakesFile:   false,
+			Value:       "",
+			DefaultText: "",
+			Destination: new(string),
+			HasBeenSet:  false,
+		},
+		&cli.StringFlag{
+			Name:        "only-on-namespace",
+			Aliases:     []string{"only-on-ns"},
+			Usage:       "Option to generation of policies only on certain namespaces",
 			EnvVars:     []string{},
 			FilePath:    "",
 			Required:    false,
@@ -146,35 +188,69 @@ func main() {
 			Destination: new(bool),
 			HasBeenSet:  false,
 		},
+		&cli.BoolFlag{
+			Name:        "generate-locally",
+			Aliases:     []string{"gen-loc"},
+			Usage:       "If true, Policy YAML will only be generate locally under $(pwd)/accuknox-client-repo/",
+			EnvVars:     []string{},
+			FilePath:    "",
+			Required:    false,
+			Hidden:      false,
+			Value:       false,
+			DefaultText: "",
+			Destination: new(bool),
+			HasBeenSet:  false,
+		},
 	}
 	app := &cli.App{
 		Name:      "Auto Policy",
 		Usage:     "A simple CLI tool automates the creation of YAML-based runtime network & system security policies on top of Auto-Discovery feature by AccuKnox and Policy Templates",
 		Version:   resources.CLI_VERSION,
-		UsageText: "autopolicy [Flags]\nEg. autopolicy --git_base_branch=deploy-branch --auto-apply=false --git_branch_name=temp-branch --git_token=gh_token123 --git_repo_url= https://github.com/testuser/demo.git --git_username=testuser",
+		UsageText: "autopolicy [Flags]\n\n1. Generate policies locally\t-->  autopolicy --generate-locally --action=Audit --exclude-ns=kube-system\n2. Generate and push to GitHub\t-->  autopolicy --git_base_branch=deploy-branch --git-branch-name=temp-branch --git-token=gh-token123 --git-repo-url= https://github.com/testuser/demo.git --git-username=testuser",
 		Flags:     myFlags,
 		Action: func(c *cli.Context) error {
-
-			if c.String("git_username") == "" || c.String("git_token") == "" || c.String("git_repo_url") == "" || c.String("git_branch_name") == "" || c.String("git_base_branch") == "" {
+			resources.AUTOAPPLY = c.Bool("auto-apply")
+			resources.GEN_LOC = c.Bool("generate-locally")
+			if c.String("exclude-namespace") != "" {
+				resources.EXCLUDE_NS = c.String("exclude-namespace")
+			} else if c.String("exclude-ns") != "" {
+				resources.EXCLUDE_NS = c.String("exclude-ns")
+			}
+			if c.String("only-on-ns") != "" {
+				resources.INCLUDE_NS = c.String("only-on-ns")
+			} else if c.String("only-on-namespace") != "" {
+				resources.INCLUDE_NS = c.String("only-on-namespace")
+			}
+			if c.String("action") != "" {
+				resources.ACTION_VAL = c.String("action")
+			} else if c.String("action-value") != "" {
+				resources.ACTION_VAL = c.String("action-value")
+			} else {
+				resources.ACTION_VAL = "Audit"
+			}
+			if resources.ACTION_VAL != "no-change" {
+				resources.ACTION_VAL = strings.Title(resources.ACTION_VAL)
+			}
+			if resources.INCLUDE_NS != "" && resources.EXCLUDE_NS != "" {
 				banner()
-				fmt.Printf("[%s][%s] Parameters missing.\n", color.BlueString(time.Now().Format("01-02-2006 15:04:05")), color.CyanString("WARN"))
-				fmt.Printf("[%s][%s] Please use autopolicy --help for help\n", color.BlueString(time.Now().Format("01-02-2006 15:04:05")), color.CyanString("WARN"))
+				fmt.Printf("[%s][%s] Please select only one option exclude-namespace or only-on-namespace.\n", color.BlueString(time.Now().Format("01-02-2006 15:04:05")), color.CyanString("WARN"))
 
 			} else {
-				banner()
-				fmt.Printf("[%s][%s] Uses KubeConfig file to connect to cluster.\n", color.BlueString(time.Now().Format("01-02-2006 15:04:05")), color.CyanString("WARN"))
-				fmt.Printf("[%s][%s] Creates files and folders in current directory.\n", color.BlueString(time.Now().Format("01-02-2006 15:04:05")), color.CyanString("WARN"))
-				fileUrl := "https://raw.githubusercontent.com/accuknox/samples/main/discover/install.sh"
-				discoverFileUrl := "https://raw.githubusercontent.com/accuknox/samples/main/discover/get_discovered_yamls.sh"
-				git_op.Git_Operation(resources.GIT_DIR)
-				discover_op.Auto_Discover(fileUrl, discoverFileUrl, resources.AD_DIR, resources.CURRENT_DIR)
-				resources.REPO_PATH = resources.CURRENT_DIR + resources.REPO_PATH
-				log.Info("repo_path=" + resources.REPO_PATH)
-				git_op.Init_Git(c.String("git_username"), c.String("git_token"), c.String("git_repo_url"), c.String("git_branch_name"), c.String("git_base_branch"), resources.REPO_PATH, resources.AD_DIR, resources.CURRENT_DIR, c.Bool("auto-apply"))
-				removeResidues(resources.GIT_DIR)
-				removeResidues(resources.AD_DIR)
+				if resources.GEN_LOC == false {
 
-				removeResidues("logs.log")
+					if c.String("git-username") == "" || c.String("git-token") == "" || c.String("git-repo-url") == "" || c.String("git-branch-name") == "" || c.String("git-base-branch") == "" {
+						banner()
+						fmt.Printf("[%s][%s] Parameters missing.\n", color.BlueString(time.Now().Format("01-02-2006 15:04:05")), color.CyanString("WARN"))
+						fmt.Printf("[%s][%s] Please use autopolicy --help for help\n", color.BlueString(time.Now().Format("01-02-2006 15:04:05")), color.CyanString("WARN"))
+
+					} else {
+						startOperation(c.String("git-username"), c.String("git-token"), c.String("git-repo-url"), c.String("git-branch-name"), c.String("git-base-branch"))
+					}
+
+				} else {
+					startOperation(c.String("git-username"), c.String("git-token"), c.String("git-repo-url"), c.String("git-branch-name"), c.String("git-base-branch"))
+
+				}
 			}
 			return nil
 		},
@@ -185,6 +261,28 @@ func main() {
 	err = app.Run(os.Args)
 	if err != nil {
 		log.Error(err)
+	}
+
+}
+
+func startOperation(git_uname, git_token, git_rep_url, git_branch_name, git_base_branch string) {
+	banner()
+	fmt.Printf("[%s][%s] Uses KubeConfig file to connect to cluster.\n", color.BlueString(time.Now().Format("01-02-2006 15:04:05")), color.CyanString("WARN"))
+	fmt.Printf("[%s][%s] Creates files and folders in current directory.\n", color.BlueString(time.Now().Format("01-02-2006 15:04:05")), color.CyanString("WARN"))
+	fileUrl := "https://raw.githubusercontent.com/accuknox/samples/main/discover/install.sh"
+	discoverFileUrl := "https://raw.githubusercontent.com/accuknox/samples/main/discover/get_discovered_yamls.sh"
+	git_op.Git_Operation(resources.GIT_DIR)
+	discover_op.Auto_Discover(fileUrl, discoverFileUrl, resources.AD_DIR, resources.CURRENT_DIR)
+	resources.REPO_PATH = resources.CURRENT_DIR + resources.REPO_PATH
+	log.Info("repo_path=" + resources.REPO_PATH)
+	git_op.Init_Git(git_uname, git_token, git_rep_url, git_branch_name, git_base_branch, resources.REPO_PATH, resources.AD_DIR, resources.CURRENT_DIR)
+
+	removeResidues(resources.GIT_DIR)
+	removeResidues(resources.AD_DIR)
+
+	//removeResidues(resources.CURRENT_DIR + "/logs.log")
+	if resources.GEN_LOC {
+		fmt.Printf("[%s][%s] Policies generated and stored locally. Please navigate to %s\n", color.BlueString(time.Now().Format("01-02-2006 15:04:05")), color.GreenString("DONE"), color.CyanString(resources.REPO_PATH))
 	}
 
 }

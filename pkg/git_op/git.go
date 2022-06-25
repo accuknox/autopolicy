@@ -18,12 +18,13 @@ import (
 	"github.com/go-git/go-git/v5/plumbing/transport/http"
 	log "github.com/sirupsen/logrus"
 	"github.com/vishnusomank/policy-cli-2.0/pkg/k8s_op"
+	"github.com/vishnusomank/policy-cli-2.0/resources"
 )
 
 // Git Functions
 var policy_template_dir string
 
-func Init_Git(username string, token string, repo_url string, branch_name string, git_base_branch string, repo_path string, ad_dir string, current_dir string, autoapply bool) {
+func Init_Git(username string, token string, repo_url string, branch_name string, git_base_branch string, repo_path string, ad_dir string, current_dir string) {
 
 	client := newClient(token)
 
@@ -38,15 +39,16 @@ func Init_Git(username string, token string, repo_url string, branch_name string
 
 	r := GitClone(username, token, repo_url, repo_path, git_base_branch)
 
-	createBranch(r, username, token, branch_name, git_base_branch, ad_dir, repo_path, autoapply)
-	fmt.Printf("[%s][%s] Successfully created branch "+branch_name+"\n", color.BlueString(time.Now().Format("01-02-2006 15:04:05")), color.GreenString("DONE"))
+	createBranch(r, username, token, branch_name, git_base_branch, ad_dir, repo_path)
+	if resources.GEN_LOC == false {
+		fmt.Printf("[%s][%s] Successfully created branch "+branch_name+"\n", color.BlueString(time.Now().Format("01-02-2006 15:04:05")), color.GreenString("DONE"))
+		pushToGithub(r, username, token)
+		fmt.Printf("[%s][%s] Successfully pushed to the GitHub repository %v\n", color.BlueString(time.Now().Format("01-02-2006 15:04:05")), color.GreenString("DONE"), color.CyanString(repo_url))
 
-	pushToGithub(r, username, token)
-	fmt.Printf("[%s][%s] Successfully pushed to the GitHub repository %v\n", color.BlueString(time.Now().Format("01-02-2006 15:04:05")), color.GreenString("DONE"), color.CyanString(repo_url))
+		createPRToGit(token, branch_name, username, repoName, client, git_base_branch)
 
-	createPRToGit(token, branch_name, username, repoName, client, git_base_branch)
-
-	removeLocalRepo(repo_path)
+		removeLocalRepo(repo_path)
+	}
 }
 
 func GitClone(username string, token string, repo_url string, repo_path string, git_base_branch string) *git.Repository {
@@ -69,39 +71,42 @@ func GitClone(username string, token string, repo_url string, repo_path string, 
 	return r
 }
 
-func createBranch(r *git.Repository, username string, token string, branch_name string, git_base_branch string, ad_dir string, repo_path string, autoapply bool) {
+func createBranch(r *git.Repository, username string, token string, branch_name string, git_base_branch string, ad_dir string, repo_path string) {
 
 	w, _ := r.Worktree()
+	if resources.GEN_LOC == false {
 
-	err := w.Checkout(&git.CheckoutOptions{
-		Create: true,
-		Force:  false,
-		Branch: plumbing.ReferenceName(git_base_branch),
-	})
+		err := w.Checkout(&git.CheckoutOptions{
+			Create: true,
+			Force:  false,
+			Branch: plumbing.ReferenceName(git_base_branch),
+		})
 
-	checkError(err, "create branch: checkout "+git_base_branch)
+		checkError(err, "create branch: checkout "+git_base_branch)
 
-	branchName := plumbing.ReferenceName("refs/heads/" + branch_name)
+		branchName := plumbing.ReferenceName("refs/heads/" + branch_name)
 
-	err = w.Checkout(&git.CheckoutOptions{
-		Create: true,
-		Force:  false,
-		Branch: branchName,
-	})
+		err = w.Checkout(&git.CheckoutOptions{
+			Create: true,
+			Force:  false,
+			Branch: branchName,
+		})
 
-	checkError(err, "create branch: checkout "+branch_name)
-
-	k8s_op.K8s_Labels(autoapply, policy_template_dir, repo_path, ad_dir)
-
-	w.Add(".")
-
-	author := &object.Signature{
-		Name:  "AutoPolicy",
-		Email: "vishnu@accuknox.com",
-		When:  time.Now(),
+		checkError(err, "create branch: checkout "+branch_name)
 	}
 
-	w.Commit("Commit from AccuKnox AutoPolicy CLI", &git.CommitOptions{Author: author})
+	k8s_op.K8s_Labels(policy_template_dir, repo_path, ad_dir)
+	if resources.GEN_LOC == false {
+		w.Add(".")
+
+		author := &object.Signature{
+			Name:  "AutoPolicy",
+			Email: "vishnu@accuknox.com",
+			When:  time.Now(),
+		}
+
+		w.Commit("Commit from AccuKnox AutoPolicy CLI", &git.CommitOptions{Author: author})
+	}
 }
 
 func pushToGithub(r *git.Repository, username, password string) {
@@ -164,7 +169,7 @@ func stringToInt(number string) int {
 
 func mergePullRequest(owner, repo, number, token string, client *github.Client) error {
 
-	fmt.Printf("[%s][%s] Attempting to merge PR #%s on %s/%s\n", color.BlueString(time.Now().Format("01-02-2006 15:04:05")), color.BlueString("INFO"), color.CyanString(number), color.CyanString(owner), color.CyanString(repo))
+	fmt.Printf("[%s][%s] Attempting to merge PR #%s on %s/%s\n", color.BlueString(time.Now().Format("01-02-2006 15:04:05")), color.YellowString("INFO"), color.CyanString(number), color.CyanString(owner), color.CyanString(repo))
 
 	commitMsg := "Commit from AccuKnox AutoPolicy CLI"
 	_, _, mergeErr := client.PullRequests.Merge(
